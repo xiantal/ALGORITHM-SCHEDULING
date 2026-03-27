@@ -43,14 +43,14 @@ h2, h3 {
 }
 
 .navbar {
-    position: fixed;
-    top: 20px;
-    left: 20px;
-    z-index: 1000;
+    display: none;
 }
 
 .back-btn {
     display: inline-flex;
+    position: absolute;
+    top: 20px;
+    left: 20px;
     align-items: center;
     gap: 8px;
     padding: 12px 20px;
