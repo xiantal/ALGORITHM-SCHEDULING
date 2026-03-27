@@ -61,8 +61,10 @@
       </div>
   
       <h3>Gantt Chart</h3>
-      <div class="gantt-chart" id="gantt-chart"></div>
-      <div class="time-markers" id="time-markers"></div>
+      <div class="gantt-container">
+        <div class="gantt-chart" id="gantt-chart"></div>
+        <div class="time-markers" id="time-markers"></div>
+      </div>
     </div>
 
   <script>
@@ -249,24 +251,34 @@
       }
 
       let maxTime = 0;
+      const pixelsPerUnit = 30;
+      const timePoints = [];
+      let currentX = 0;
+      
       mergedGanttData.forEach(entry => {
         const duration = entry.end - entry.start;
         const box = document.createElement('div');
         box.className = 'gantt-box';
         box.textContent = entry.process;
-        box.style.flex = `${duration} 0 auto`;
-        box.style.minWidth = `${duration * 30}px`;
+        const boxWidth = duration * pixelsPerUnit;
+        box.style.width = `${boxWidth}px`;
         box.title = `${entry.process} (${entry.start}-${entry.end})`;
         ganttChart.appendChild(box);
+        
+        timePoints.push({ time: entry.start, x: currentX });
+        currentX += boxWidth;
         maxTime = Math.max(maxTime, entry.end);
       });
 
-      for (let i = 0; i <= maxTime; i++) {
+      timePoints.push({ time: maxTime, x: currentX });
+      
+      timePoints.forEach(point => {
         const marker = document.createElement('div');
         marker.className = 'time-marker';
-        marker.textContent = i;
+        marker.textContent = point.time;
+        marker.style.left = `${point.x + 10}px`;
         timeMarkers.appendChild(marker);
-      }
+      });
       
       resultSection.style.display = 'block';
     });
