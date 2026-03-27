@@ -63,8 +63,10 @@
     </div>
 
     <h3>Gantt Chart</h3>
-    <div class="gantt-chart" id="gantt-chart"></div>
-    <div class="time-markers" id="time-markers"></div>
+    <div class="gantt-container">
+      <div class="gantt-chart" id="gantt-chart"></div>
+      <div class="time-markers" id="time-markers"></div>
+    </div>
   </div>
 
   <script>
@@ -233,26 +235,30 @@
       const timeMarkers = document.getElementById('time-markers');
       ganttChart.innerHTML = '';
       timeMarkers.innerHTML = '';
+      
+      const pixelsPerUnit = 30;
+      let currentX = 0;
+      const timePoints = [];
 
-      gantt.forEach((g, index) => {
+      gantt.forEach((g) => {
         const box = document.createElement('div');
         box.className = 'gantt-box';
         box.textContent = g.id;
-        box.style.flex = `${g.end - g.start} 0 auto`;
+        const boxWidth = (g.end - g.start) * pixelsPerUnit;
+        box.style.width = `${boxWidth}px`;
         ganttChart.appendChild(box);
+        
+        timePoints.push({ time: g.start, x: currentX });
+        currentX += boxWidth;
       });
 
-      const timePoints = [0];
-      gantt.forEach(g => {
-        if (!timePoints.includes(g.start)) timePoints.push(g.start);
-        if (!timePoints.includes(g.end)) timePoints.push(g.end);
-      });
-      timePoints.sort((a, b) => a - b);
+      timePoints.push({ time: gantt[gantt.length - 1].end, x: currentX });
 
-      timePoints.forEach(time => {
+      timePoints.forEach(point => {
         const marker = document.createElement('div');
         marker.className = 'time-marker';
-        marker.textContent = time;
+        marker.textContent = point.time;
+        marker.style.left = `${point.x + 10}px`;
         timeMarkers.appendChild(marker);
       });
     });
