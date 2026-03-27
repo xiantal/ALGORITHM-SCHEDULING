@@ -61,7 +61,10 @@
         </div>
         
         <h3>Gantt Chart</h3>
-        <div class="gantt-chart" id="gantt-chart"></div>
+        <div class="gantt-container">
+            <div class="gantt-chart" id="gantt-chart"></div>
+            <div class="time-markers" id="time-markers"></div>
+        </div>
     </div>
     
     <script>
@@ -203,9 +206,14 @@
             
             function generateGanttChart(processes) {
                 const ganttChart = document.getElementById('gantt-chart');
+                const timeMarkers = document.getElementById('time-markers');
                 ganttChart.innerHTML = '';
+                timeMarkers.innerHTML = '';
                 
                 let currentTime = 0;
+                const timePoints = [];
+                const pixelsPerUnit = 30;
+                let currentX = 0;
                 
                 processes.forEach(process => {
                     if (currentTime < process.arrival) {
@@ -213,35 +221,36 @@
                         idleBox.className = 'gantt-box';
                         idleBox.style.backgroundColor = '#ffcccc';
                         idleBox.textContent = 'Idle';
-                        idleBox.style.minWidth = `${(process.arrival - currentTime) * 30}px`;
+                        const idleWidth = (process.arrival - currentTime) * pixelsPerUnit;
+                        idleBox.style.width = `${idleWidth}px`;
                         ganttChart.appendChild(idleBox);
                         
-                        const idleTimeMark = document.createElement('div');
-                        idleTimeMark.className = 'time-mark';
-                        idleTimeMark.textContent = currentTime;
-                        ganttChart.appendChild(idleTimeMark);
-                        
+                        timePoints.push({ time: currentTime, x: currentX });
+                        currentX += idleWidth;
                         currentTime = process.arrival;
                     }
                     
                     const box = document.createElement('div');
                     box.className = 'gantt-box';
                     box.textContent = process.id;
-                    box.style.minWidth = `${process.burst * 30}px`;
+                    const boxWidth = process.burst * pixelsPerUnit;
+                    box.style.width = `${boxWidth}px`;
                     ganttChart.appendChild(box);
                     
-                    const timeMark = document.createElement('div');
-                    timeMark.className = 'time-mark';
-                    timeMark.textContent = currentTime;
-                    ganttChart.appendChild(timeMark);
-                    
+                    timePoints.push({ time: currentTime, x: currentX });
+                    currentX += boxWidth;
                     currentTime += process.burst;
                 });
                 
-                const finalTimeMark = document.createElement('div');
-                finalTimeMark.className = 'time-mark';
-                finalTimeMark.textContent = currentTime;
-                ganttChart.appendChild(finalTimeMark);
+                timePoints.push({ time: currentTime, x: currentX });
+                
+                timePoints.forEach(point => {
+                    const marker = document.createElement('div');
+                    marker.className = 'time-marker';
+                    marker.textContent = point.time;
+                    marker.style.left = `${point.x + 10}px`;
+                    timeMarkers.appendChild(marker);
+                });
             }
         });
     </script>
