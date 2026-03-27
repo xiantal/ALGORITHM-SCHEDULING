@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+        <title>Shortest Remaining Time First Scheduling Algorithm</title>
+        <link rel="stylesheet" href="style.css">
+      </head>
+<body class="algo-page">
+    <nav class="navbar">
+        <a href="preemp.html" class="back-btn">← Back</a>
+    </nav>
+    <h1>Shortest Remaining Time First Scheduling Algorithm</h1>
+
+    <div class="input-section">
+      <h2>Input Process Details</h2>
+  
+      <table id="input-table">
+        <thead>
+          <tr>
+            <th>Process</th>
+            <th>Arrival Time</th>
+            <th>Burst Time</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody id="input-body">
+          <tr>
+            <td>P1</td>
+            <td><input type="number" class="arrival-time" min="" value="" /></td>
+            <td><input type="number" class="burst-time" min="" value="" /></td>
+            <td><button class="remove-btn remove-process">Remove</button></td>
+          </tr>
+        </tbody>
+      </table>
+  
+      <div class="action-buttons">
+        <button id="add-process">Add Process</button>
+        <button id="calculate">Calculate</button>
+        <button id="reset">Reset</button>
+      </div>
+    </div>
+  
+    <div class="result-section" id="result-section" style="display: none;">
+      <h2>Results</h2>
+      <table id="result-table">
+        <thead>
+          <tr>
+            <th>Process</th>
+            <th>Arrival Time</th>
+            <th>Burst Time</th>
+            <th>Completion Time</th>
+            <th>Turnaround Time</th>
+            <th>Waiting Time</th>
+          </tr>
+        </thead>
+        <tbody id="result-body"></tbody>
+      </table>
+  
+      <div style="margin-top: 20px;">
+        <h3>Average Turnaround Time: <span id="avg-turnaround">0</span></h3>
+        <h3>Average Waiting Time: <span id="avg-waiting">0</span></h3>
+      </div>
+  
+      <h3>Gantt Chart</h3>
+      <div class="gantt-chart" id="gantt-chart"></div>
+      <div class="time-markers" id="time-markers"></div>
+    </div>
+
+  <script>
+    const tbody = document.getElementById('input-body');
+    const resultSection = document.getElementById('result-section');
+    const resultBody = document.getElementById('result-body');
+    const ganttChart = document.getElementById('gantt-chart');
+    const timeMarkers = document.getElementById('time-markers');
+    const avgTurnaround = document.getElementById('avg-turnaround');
+    const avgWaiting = document.getElementById('avg-waiting');
+
+    function updateProcessNumbers() {
+      const rows = Array.from(tbody.rows);
+      rows.forEach((row, index) => {
+        row.cells[0].textContent = 'P' + (index + 1);
+      });
+    }
+
+    document.getElementById('add-process').addEventListener('click', () => {
+      const rowCount = tbody.rows.length;
+      const newRow = tbody.insertRow();
+      newRow.innerHTML = `
+        <td>P${rowCount + 1}</td>
+        <td><input type="number" class="arrival-time" min="" value="" /></td>
+        <td><input type="number" class="burst-time" min="" value="" /></td>
+        <td><button class="remove-btn remove-process">Remove</button></td>`;
+      newRow.querySelector('.remove-process').addEventListener('click', () => {
+        if (tbody.rows.length > 1) {
+          tbody.removeChild(newRow);
+          updateProcessNumbers();
+        } else {
+          alert("You need at least one process!");
+        }
+      });
+      updateProcessNumbers();
+    });
+
+    document.querySelectorAll('.remove-process').forEach(btn => {
+      btn.addEventListener('click', function() {
+        if (tbody.rows.length > 1) {
+          tbody.removeChild(this.closest('tr'));
+          updateProcessNumbers();
+        } else {
+          alert("You need at least one process!");
+        }
+      });
+    });
+
+    document.getElementById('reset').addEventListener('click', () => {
+      tbody.innerHTML = `
+        <tr>
+          <td>P1</td>
+          <td><input type="number" class="arrival-time" min="" value="" /></td>
+          <td><input type="number" class="burst-time" min="" value="" /></td>
+          <td><button class="remove-btn remove-process">Remove</button></td>
+        </tr>`;
+      document.querySelectorAll('.remove-process').forEach(btn => {
+        btn.addEventListener('click', function() {
+          if (tbody.rows.length > 1) {
+            tbody.removeChild(this.closest('tr'));
+            updateProcessNumbers();
+          } else {
+            alert("You need at least one process!");
+          }
+        });
+      });
+      resultSection.style.display = 'none';
+    });
+
+    document.getElementById('calculate').addEventListener('click', () => {
+      const processes = [];
+      const rows = tbody.rows;
+      
+      for (let i = 0; i < rows.length; i++) {
+        const processId = rows[i].cells[0].textContent;
+        const arrivalTime = parseInt(rows[i].querySelector('.arrival-time').value);
+        const burstTime = parseInt(rows[i].querySelector('.burst-time').value);
+        
+        processes.push({
+          id: processId,
+          arrivalTime: arrivalTime,
+          burstTime: burstTime,
+          remainingTime: burstTime,
+          completionTime: 0,
+          turnaroundTime: 0,
+          waitingTime: 0,
+          startTime: -1
+        });
+      }
+      
+      processes.sort((a, b) => a.arrivalTime - b.arrivalTime);
+      
+      let currentTime = 0;
+      let completed = 0;
+      let prevProcess = null;
+      const ganttData = [];
+      
+      while (completed < processes.length) {
+        const readyProcesses = processes.filter(p => 
+          p.arrivalTime <= currentTime && p.remainingTime > 0
+        );
+        
+        if (readyProcesses.length === 0) {
+          currentTime++;
+          continue;
+        }
+        
+        readyProcesses.sort((a, b) => a.remainingTime - b.remainingTime);
+        const currentProcess = readyProcesses[0];
+        
+        if (currentProcess.startTime === -1) {
+          currentProcess.startTime = currentTime;
+        }
+        
+        if (prevProcess && prevProcess.id !== currentProcess.id) {
+          ganttData.push({
+            process: prevProcess.id,
+            start: prevProcess.startTime,
+            end: currentTime
+          });
+          currentProcess.startTime = currentTime;
+        }
+        
+        currentTime++;
+        currentProcess.remainingTime--;
+        
+        if (currentProcess.remainingTime === 0) {
+          completed++;
+          currentProcess.completionTime = currentTime;
+          currentProcess.turnaroundTime = currentProcess.completionTime - currentProcess.arrivalTime;
+          currentProcess.waitingTime = currentProcess.turnaroundTime - currentProcess.burstTime;
+          
+          ganttData.push({
+            process: currentProcess.id,
+            start: currentProcess.startTime,
+            end: currentTime
+          });
+        }
+        
+        prevProcess = {...currentProcess};
+      }
+      
+      const totalTurnaround = processes.reduce((sum, p) => sum + p.turnaroundTime, 0);
+      const totalWaiting = processes.reduce((sum, p) => sum + p.waitingTime, 0);
+      const avgTurnaroundTime = (totalTurnaround / processes.length).toFixed(2);
+      const avgWaitingTime = (totalWaiting / processes.length).toFixed(2);
+      
+      resultBody.innerHTML = '';
+      processes.forEach(p => {
+        const row = document.createElement('tr');
+        row.innerHTML = `
+          <td>${p.id}</td>
+          <td>${p.arrivalTime}</td>
+          <td>${p.burstTime}</td>
+          <td>${p.completionTime}</td>
+          <td>${p.turnaroundTime}</td>
+          <td>${p.waitingTime}</td>
+        `;
+        resultBody.appendChild(row);
+      });
+      
+      avgTurnaround.textContent = avgTurnaroundTime;
+      avgWaiting.textContent = avgWaitingTime;
+      
+      ganttChart.innerHTML = '';
+      timeMarkers.innerHTML = '';
+
+      const mergedGanttData = [];
+      let currentEntry = null;
+
+      ganttData.forEach(entry => {
+        if (!currentEntry) {
+          currentEntry = {...entry};
+        } else if (currentEntry.process === entry.process && currentEntry.end === entry.start) {
+          currentEntry.end = entry.end;
+        } else {
+          mergedGanttData.push(currentEntry);
+          currentEntry = {...entry};
+        }
+      });
+
+      if (currentEntry) {
+        mergedGanttData.push(currentEntry);
+      }
+
+      let maxTime = 0;
+      mergedGanttData.forEach(entry => {
+        const duration = entry.end - entry.start;
+        const box = document.createElement('div');
+        box.className = 'gantt-box';
+        box.textContent = entry.process;
+        box.style.flex = `${duration} 0 auto`;
+        box.style.minWidth = `${duration * 30}px`;
+        box.title = `${entry.process} (${entry.start}-${entry.end})`;
+        ganttChart.appendChild(box);
+        maxTime = Math.max(maxTime, entry.end);
+      });
+
+      for (let i = 0; i <= maxTime; i++) {
+        const marker = document.createElement('div');
+        marker.className = 'time-marker';
+        marker.textContent = i;
+        timeMarkers.appendChild(marker);
+      }
+      
+      resultSection.style.display = 'block';
+    });
+  </script>
+</body>
+</html>

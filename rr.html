@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Round Robin</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body class="algo-page">
+  <nav class="navbar">
+      <a href="preemp.html" class="back-btn">← Back</a>
+  </nav>
+  <h1>Round Robin Scheduling Algorithm</h1>
+
+  <div class="input-section">
+    <h2>Input Process Details</h2>
+    <label for="quantum"><strong>Time Quantum:</strong></label>
+    <input type="number" id="quantum" min="" value="" style="width:80px; margin-bottom: 15px;" />
+
+    <table id="input-table">
+      <thead>
+        <tr>
+          <th>Process</th>
+          <th>Arrival Time</th>
+          <th>Burst Time</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+      <tbody id="input-body">
+        <tr>
+          <td>P1</td>
+          <td><input type="number" class="arrival-time" min="" value="" /></td>
+          <td><input type="number" class="burst-time" min="" value="" /></td>
+          <td><button class="remove-btn remove-process">Remove</button></td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="action-buttons">
+      <button id="add-process">Add Process</button>
+      <button id="calculate">Calculate</button>
+      <button id="reset">Reset</button>
+    </div>
+  </div>
+
+  <div class="result-section" id="result-section" style="display: none;">
+    <h2>Results</h2>
+    <table id="result-table">
+      <thead>
+        <tr>
+          <th>Process</th>
+          <th>Arrival Time</th>
+          <th>Burst Time</th>
+          <th>Completion Time</th>
+          <th>Turnaround Time</th>
+          <th>Waiting Time</th>
+        </tr>
+      </thead>
+      <tbody id="result-body"></tbody>
+    </table>
+
+    <div style="margin-top: 20px;">
+      <h3>Average Turnaround Time: <span id="avg-turnaround">0</span></h3>
+      <h3>Average Waiting Time: <span id="avg-waiting">0</span></h3>
+    </div>
+
+    <h3>Gantt Chart</h3>
+    <div class="gantt-chart" id="gantt-chart"></div>
+    <div class="time-markers" id="time-markers"></div>
+  </div>
+
+  <script>
+    const tbody = document.getElementById('input-body');
+
+    function updateProcessNumbers() {
+      const rows = tbody.rows;
+      for (let i = 0; i < rows.length; i++) {
+        rows[i].cells[0].textContent = 'P' + (i + 1);
+      }
+    }
+
+    document.getElementById('add-process').addEventListener('click', () => {
+      const rowCount = tbody.rows.length;
+      const newRow = tbody.insertRow();
+      newRow.innerHTML = `
+        <td>P${rowCount + 1}</td>
+        <td><input type="number" class="arrival-time" min="" value="" /></td>
+        <td><input type="number" class="burst-time" min="" value="" /></td>
+        <td><button class="remove-btn remove-process">Remove</button></td>`;
+      newRow.querySelector('.remove-process').addEventListener('click', () => {
+        if (tbody.rows.length > 1) {
+          tbody.removeChild(newRow);
+          updateProcessNumbers();
+        } else {
+          alert("You need at least one process!");
+        }
+      });
+    });
+
+    document.querySelectorAll('.remove-process').forEach(btn => {
+      btn.addEventListener('click', function() {
+        if (tbody.rows.length > 1) {
+          tbody.removeChild(this.closest('tr'));
+          updateProcessNumbers();
+        } else {
+          alert("You need at least one process!");
+        }
+      });
+    });
+
+    document.getElementById('reset').addEventListener('click', () => {
+      tbody.innerHTML = `
+        <tr>
+          <td>P1</td>
+          <td><input type="number" class="arrival-time" min="" value="" /></td>
+          <td><input type="number" class="burst-time" min="" value="" /></td>
+          <td><button class="remove-btn remove-process">Remove</button></td>
+        </tr>`;
+      document.querySelectorAll('.remove-process').forEach(btn => {
+        btn.addEventListener('click', function() {
+          if (tbody.rows.length > 1) {
+            tbody.removeChild(this.closest('tr'));
+            updateProcessNumbers();
+          } else {
+            alert("You need at least one process!");
+          }
+        });
+      });
+      document.getElementById('result-section').style.display = 'none';
+    });
+
+    document.getElementById('calculate').addEventListener('click', () => {
+      const quantum = parseInt(document.getElementById('quantum').value);
+      if (!quantum || quantum < 1) {
+        alert("Invalid time quantum.");
+        return;
+      }
+
+      const rows = tbody.rows;
+      const processes = [];
+      for (let i = 0; i < rows.length; i++) {
+        const arrival = parseInt(rows[i].querySelector('.arrival-time').value) || 0;
+        const burst = parseInt(rows[i].querySelector('.burst-time').value);
+        if (isNaN(burst) || burst <= 0) {
+          alert(`Burst time of process P${i+1} must be > 0.`);
+          return;
+        }
+        processes.push({ 
+          id: 'P' + (i + 1), 
+          arrival, 
+          burst, 
+          remaining: burst,
+          completion: 0,
+          turnaround: 0,
+          waiting: 0
+        });
+      }
+
+      const processQueue = JSON.parse(JSON.stringify(processes));
+      processQueue.sort((a, b) => a.arrival - b.arrival);
+      
+      let time = 0;
+      let queue = [];
+      let gantt = [];
+      let completed = [];
+      let i = 0;
+
+      while (completed.length < processQueue.length) {
+        while (i < processQueue.length && processQueue[i].arrival <= time) {
+          queue.push(processQueue[i]);
+          i++;
+        }
+
+        if (queue.length === 0) {
+          if (i < processQueue.length) {
+            time = processQueue[i].arrival;
+            continue;
+          }
+          break;
+        }
+
+        const current = queue.shift();
+        const execTime = Math.min(quantum, current.remaining);
+        
+        gantt.push({
+          id: current.id,
+          start: time,
+          end: time + execTime
+        });
+
+        time += execTime;
+        current.remaining -= execTime;
+
+        while (i < processQueue.length && processQueue[i].arrival <= time) {
+          queue.push(processQueue[i]);
+          i++;
+        }
+
+        if (current.remaining > 0) {
+          queue.push(current);
+        } else {
+          current.completion = time;
+          completed.push(current);
+        }
+      }
+
+      completed.forEach(p => {
+        p.turnaround = p.completion - p.arrival;
+        p.waiting = p.turnaround - p.burst;
+      });
+
+      const resultBody = document.getElementById('result-body');
+      resultBody.innerHTML = '';
+      let totalTAT = 0, totalWT = 0;
+
+      completed.forEach(p => {
+        totalTAT += p.turnaround;
+        totalWT += p.waiting;
+        resultBody.innerHTML += `
+          <tr>
+            <td>${p.id}</td>
+            <td>${p.arrival}</td>
+            <td>${p.burst}</td>
+            <td>${p.completion}</td>
+            <td>${p.turnaround}</td>
+            <td>${p.waiting}</td>
+          </tr>`;
+      });
+
+      document.getElementById('avg-turnaround').textContent = (totalTAT / completed.length).toFixed(2);
+      document.getElementById('avg-waiting').textContent = (totalWT / completed.length).toFixed(2);
+      document.getElementById('result-section').style.display = 'block';
+
+      const ganttChart = document.getElementById('gantt-chart');
+      const timeMarkers = document.getElementById('time-markers');
+      ganttChart.innerHTML = '';
+      timeMarkers.innerHTML = '';
+
+      gantt.forEach((g, index) => {
+        const box = document.createElement('div');
+        box.className = 'gantt-box';
+        box.textContent = g.id;
+        box.style.flex = `${g.end - g.start} 0 auto`;
+        ganttChart.appendChild(box);
+      });
+
+      const timePoints = [0];
+      gantt.forEach(g => {
+        if (!timePoints.includes(g.start)) timePoints.push(g.start);
+        if (!timePoints.includes(g.end)) timePoints.push(g.end);
+      });
+      timePoints.sort((a, b) => a - b);
+
+      timePoints.forEach(time => {
+        const marker = document.createElement('div');
+        marker.className = 'time-marker';
+        marker.textContent = time;
+        timeMarkers.appendChild(marker);
+      });
+    });
+  </script>
+</body>
+</html>
