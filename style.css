@@ -295,46 +295,69 @@ input:focus {
     border: 1px solid rgba(67, 230, 213, 0.2);
 }
 
-.gantt-chart {
+.gantt-container {
     display: flex;
+    flex-direction: column;
     margin-top: 25px;
-    overflow-x: auto;
-    padding: 10px 0;
     background-color: rgba(0, 0, 0, 0.3);
     border-radius: 6px;
+    border: 1px solid rgba(67, 230, 213, 0.2);
+    padding: 0;
+}
+
+.gantt-chart {
+    display: flex;
+    overflow-x: auto;
+    padding: 10px;
+    flex: 0 0 auto;
+    align-items: center;
+    gap: 0;
 }
 
 .gantt-box {
     border: 2px solid var(--primary);
     padding: 12px;
     text-align: center;
-    min-width: 60px;
     background: linear-gradient(135deg, var(--primary) 0%, var(--secondary-dark) 100%);
     color: var(--dark-bg);
     font-weight: 600;
-    margin-right: 2px;
     border-radius: 4px;
     box-shadow: 0 2px 8px rgba(67, 230, 213, 0.3);
+    flex: 0 0 auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
-.time-mark,
-.time-marker {
+.time-mark {
     text-align: center;
     font-size: 12px;
-    margin-top: 8px;
     color: var(--primary);
     font-weight: 600;
 }
 
 .time-markers {
     display: flex;
-    justify-content: space-between;
-    margin-top: 5px;
+    overflow-x: auto;
+    padding: 5px 10px;
+    border-top: 1px solid rgba(67, 230, 213, 0.2);
+    flex: 0 0 auto;
+    gap: 0;
+    position: relative;
+    height: 30px;
 }
 
 .time-marker {
-    flex: 1;
     text-align: center;
+    font-size: 11px;
+    color: var(--primary);
+    font-weight: 600;
+    flex: 0 0 auto;
+    position: absolute;
+    bottom: 0;
+    transform: translateX(-50%);
+    white-space: nowrap;
+    padding: 0 4px;
 }
 
 .action-buttons {
