@@ -61,7 +61,10 @@
         </div>
         
         <h3>Gantt Chart</h3>
-        <div class="gantt-chart" id="gantt-chart"></div>
+        <div class="gantt-container">
+            <div class="gantt-chart" id="gantt-chart"></div>
+            <div class="time-markers" id="time-markers"></div>
+        </div>
     </div>
     
     <script>
@@ -220,9 +223,14 @@
             
             function generateGanttChart(sequence) {
                 const ganttChart = document.getElementById('gantt-chart');
+                const timeMarkers = document.getElementById('time-markers');
                 ganttChart.innerHTML = '';
+                timeMarkers.innerHTML = '';
                 
                 let previousEnd = 0;
+                const timePoints = [];
+                const pixelsPerUnit = 30;
+                let currentX = 0;
                 
                 sequence.forEach(item => {
                     if (previousEnd < item.start) {
@@ -230,35 +238,36 @@
                         idleBox.className = 'gantt-box';
                         idleBox.style.backgroundColor = '#ffcccc';
                         idleBox.textContent = 'Idle';
-                        idleBox.style.minWidth = `${(item.start - previousEnd) * 30}px`;
+                        const idleWidth = (item.start - previousEnd) * pixelsPerUnit;
+                        idleBox.style.width = `${idleWidth}px`;
                         ganttChart.appendChild(idleBox);
                         
-                        const idleTimeMark = document.createElement('div');
-                        idleTimeMark.className = 'time-mark';
-                        idleTimeMark.textContent = previousEnd;
-                        ganttChart.appendChild(idleTimeMark);
-                        
+                        timePoints.push({ time: previousEnd, x: currentX });
+                        currentX += idleWidth;
                         previousEnd = item.start;
                     }
                     
                     const box = document.createElement('div');
                     box.className = 'gantt-box';
                     box.textContent = item.id;
-                    box.style.minWidth = `${(item.end - item.start) * 30}px`;
+                    const boxWidth = (item.end - item.start) * pixelsPerUnit;
+                    box.style.width = `${boxWidth}px`;
                     ganttChart.appendChild(box);
                     
-                    const timeMark = document.createElement('div');
-                    timeMark.className = 'time-mark';
-                    timeMark.textContent = item.start;
-                    ganttChart.appendChild(timeMark);
-                    
+                    timePoints.push({ time: item.start, x: currentX });
+                    currentX += boxWidth;
                     previousEnd = item.end;
                 });
                 
-                const finalTimeMark = document.createElement('div');
-                finalTimeMark.className = 'time-mark';
-                finalTimeMark.textContent = previousEnd;
-                ganttChart.appendChild(finalTimeMark);
+                timePoints.push({ time: previousEnd, x: currentX });
+                
+                timePoints.forEach(point => {
+                    const marker = document.createElement('div');
+                    marker.className = 'time-marker';
+                    marker.textContent = point.time;
+                    marker.style.left = `${point.x + 10}px`;
+                    timeMarkers.appendChild(marker);
+                });
             }
         });
     </script>
